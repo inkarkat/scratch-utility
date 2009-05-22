@@ -4,6 +4,9 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
+"   1.0.0ingo001  19-May-2009   Changed semantics to match other "sidebar"
+"                               plugins (project.vim, bufexplorer.vim,
+"                               taglist.vim). 
 " Download From:
 "     http://www.vim.org/script.php?script_id=389
 "----------------------------------------------------------------------
@@ -85,18 +88,20 @@ function! <SID>ShowScratchBuffer()
     set isfname-=\
     set isfname-=[
     if exists('+shellslash')
-      exec "sp \\\\". s:SCRATCH_BUFFER_NAME
+      exec "topleft sp \\\\". s:SCRATCH_BUFFER_NAME
     else
-      exec "sp \\". s:SCRATCH_BUFFER_NAME
+      exec "topleft sp \\". s:SCRATCH_BUFFER_NAME
     endif
     let &isfname = _isf
     let s:buffer_number = bufnr('%')
   else
     let buffer_win=bufwinnr(s:buffer_number)
     if(buffer_win == -1)
-      exec 'sb '. s:buffer_number
+      exec 'topleft sb '. s:buffer_number
     else
       exec buffer_win.'wincmd w'
+      hide
+      wincmd p
     endif
   endif
   " Do setup always, just in case.
@@ -105,9 +110,6 @@ function! <SID>ShowScratchBuffer()
   setlocal nobuflisted
   setlocal noswapfile
   setlocal noro
-  nmap <buffer> <silent> <Plug>ShowScratchBuffer :hide<cr>
-  imap <buffer> <silent> <Plug>InsShowScratchBuffer <c-o>:hide<cr>
-  command! -buffer -nargs=0 Scratch :hide
 endfunction
 
 function! s:BackupScratchBuffer()
