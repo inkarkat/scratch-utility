@@ -4,6 +4,9 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
+"   1.0.0ingo002  23-May-2009   BF: Toggling off applied scratch buffer settings
+"                               to another buffer. Skipping buffer settings in
+"                               that case. 
 "   1.0.0ingo001  19-May-2009   Changed semantics to match other "sidebar"
 "                               plugins (project.vim, bufexplorer.vim,
 "                               taglist.vim). 
@@ -78,11 +81,12 @@ if !exists('s:buffer_number') " Supports reloading.
 endif
 
 "----------------------------------------------------------------------
-" Diplays the scratch buffer. Creates one if it is an already 
-" present
+" Toggles the scratch buffer. Creates one if it is not already 
+" present, shows if not yet visible, hides if it was already loaded in a window. 
 "----------------------------------------------------------------------
 function! <SID>ShowScratchBuffer()
   if(s:buffer_number == -1 || bufexists(s:buffer_number) == 0)
+    " No scratch buffer has been created yet. 
     " Temporarily modify isfname to avoid treating the name as a pattern.
     let _isf = &isfname
     set isfname-=\
@@ -95,13 +99,17 @@ function! <SID>ShowScratchBuffer()
     let &isfname = _isf
     let s:buffer_number = bufnr('%')
   else
+    " A scratch buffer already exists ... 
     let buffer_win=bufwinnr(s:buffer_number)
     if(buffer_win == -1)
+      " ... but isn't visible, so show it. 
       exec 'topleft sb '. s:buffer_number
     else
+      " ... and is visible, so close it. 
       exec buffer_win.'wincmd w'
       hide
       wincmd p
+      return
     endif
   endif
   " Do setup always, just in case.
