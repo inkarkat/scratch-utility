@@ -4,6 +4,8 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
+"   1.0.0ingo003  14-Mar-2010   Maintaining the alternate file via :keepalt. 
+"                               Now requiring Vim 7.0 or higher. 
 "   1.0.0ingo002  23-May-2009   BF: Toggling off applied scratch buffer settings
 "                               to another buffer. Skipping buffer settings in
 "                               that case. 
@@ -39,7 +41,7 @@
 "----------------------------------------------------------------------
 "Standard Inteface:  <F8> to make a new ScratchBuffer, <F8>-again to hide one
 
-if exists('loaded_scratch')
+if exists('loaded_scratch') || (v:version < 700) 
   finish
 endif
 let loaded_scratch = 1
@@ -92,9 +94,9 @@ function! <SID>ShowScratchBuffer()
     set isfname-=\
     set isfname-=[
     if exists('+shellslash')
-      exec "topleft sp \\\\". s:SCRATCH_BUFFER_NAME
+      exec "keepalt topleft sp \\\\". s:SCRATCH_BUFFER_NAME
     else
-      exec "topleft sp \\". s:SCRATCH_BUFFER_NAME
+      exec "keepalt topleft sp \\". s:SCRATCH_BUFFER_NAME
     endif
     let &isfname = _isf
     let s:buffer_number = bufnr('%')
@@ -103,7 +105,7 @@ function! <SID>ShowScratchBuffer()
     let buffer_win=bufwinnr(s:buffer_number)
     if(buffer_win == -1)
       " ... but isn't visible, so show it. 
-      exec 'topleft sb '. s:buffer_number
+      exec 'keepalt topleft sb '. s:buffer_number
     else
       " ... and is visible, so close it. 
       exec buffer_win.'wincmd w'
@@ -123,16 +125,10 @@ endfunction
 function! s:BackupScratchBuffer()
   if s:buffer_number != -1 && exists('g:scratchBackupFile') &&
         \ g:scratchBackupFile != ''
-    exec 'split #' . s:buffer_number
+    exec 'keepalt split #' . s:buffer_number
     " Avoid writing empty scratch buffers.
     if line('$') > 1 || getline(1) !~ '^\s*$'
-      let _cpo=&cpo
-      try
-        set cpo-=A
-        exec 'write!' g:scratchBackupFile
-      finally
-        let &cpo=_cpo
-      endtry
+      exec 'keepalt write!' g:scratchBackupFile
     endif
   endif
 endfunction
