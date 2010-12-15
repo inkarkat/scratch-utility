@@ -4,6 +4,7 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
+"   1.0.0ingo004  15-Dec-2010   Fixing window height to &previewheight. 
 "   1.0.0ingo003  14-Mar-2010   Maintaining the alternate file via :keepalt. 
 "                               Now requiring Vim 7.0 or higher. 
 "   1.0.0ingo002  23-May-2009   BF: Toggling off applied scratch buffer settings
@@ -105,7 +106,8 @@ function! <SID>ShowScratchBuffer()
     let buffer_win=bufwinnr(s:buffer_number)
     if(buffer_win == -1)
       " ... but isn't visible, so show it. 
-      exec 'keepalt topleft sb '. s:buffer_number
+      exec 'topleft' &previewheight.'split'
+      exec 'keepalt buf' s:buffer_number
     else
       " ... and is visible, so close it. 
       exec buffer_win.'wincmd w'
