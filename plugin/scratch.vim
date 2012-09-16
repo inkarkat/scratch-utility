@@ -4,7 +4,7 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
-"   1.0.0ingo004  15-Dec-2010   Fixing window height to &previewheight. 
+"   1.0.0ingo004  16-Dec-2010   Fixing window height to &previewheight. 
 "   1.0.0ingo003  14-Mar-2010   Maintaining the alternate file via :keepalt. 
 "                               Now requiring Vim 7.0 or higher. 
 "   1.0.0ingo002  23-May-2009   BF: Toggling off applied scratch buffer settings
@@ -94,11 +94,7 @@ function! <SID>ShowScratchBuffer()
     let _isf = &isfname
     set isfname-=\
     set isfname-=[
-    if exists('+shellslash')
-      exec "keepalt topleft sp \\\\". s:SCRATCH_BUFFER_NAME
-    else
-      exec "keepalt topleft sp \\". s:SCRATCH_BUFFER_NAME
-    endif
+    exec 'keepalt topleft' &previewheight.'sp' (exists('+shellslash') ? '\\' : '\') . s:SCRATCH_BUFFER_NAME
     let &isfname = _isf
     let s:buffer_number = bufnr('%')
   else
