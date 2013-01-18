@@ -4,6 +4,8 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
+"   1.0.0.ingo006  19-Jan-2013  ENH: Allow additional scratch buffers with
+"                               different names. (But those aren't backed up.)
 "   1.0.0.ingo005  17-Sep-2012	Change split behavior to add custom
 "                               TopLeftHook() before :topleft. Without it, when
 "                               the topmost window has a winheight of 0 (in
@@ -75,11 +77,11 @@ endif
 
 " User Overrideable Plugin Interface
 nmap <script> <silent> <Plug>ShowScratchBuffer
-      \ :silent call <SID>ShowScratchBuffer()<cr>
+      \ :<c-u>silent call scratch#Toggle()<cr>
 imap <script> <silent> <Plug>InsShowScratchBuffer
-      \ <c-o>:silent call <SID>ShowScratchBuffer()<cr>
+      \ <c-o>:silent call scratch#Toggle()<cr>
 
-command! -nargs=0 Scratch :call <SID>ShowScratchBuffer()
+command! -nargs=? Scratch call scratch#Toggle(<f-args>)
 
 if !exists('g:scratchBackupFile')
   let g:scratchBackupFile = '' " So that users can easily find this var.
@@ -89,40 +91,48 @@ aug ScratchBackup
   au VimLeavePre * :call <SID>BackupScratchBuffer()
 aug END
 
-let s:SCRATCH_BUFFER_NAME="[Scratch]"
-if !exists('s:buffer_number') " Supports reloading.
-  let s:buffer_number = -1
+let s:DEFAULT_NAME="[Scratch]"
+if !exists('s:buffer_numbers') " Supports reloading.
+  let s:buffer_numbers = {}
 endif
+
+function! s:buffer_number( name )
+  return get(s:buffer_numbers, a:name, -1)
+endfunction
 
 "----------------------------------------------------------------------
 " Toggles the scratch buffer. Creates one if it is not already
 " present, shows if not yet visible, hides if it was already loaded in a window.
 "----------------------------------------------------------------------
-function! <SID>ShowScratchBuffer()
-  if(s:buffer_number == -1 || bufexists(s:buffer_number) == 0)
+function! scratch#Toggle( ... )
+  let result = 0
+  let name = (a:0 && ! empty(a:1) ? a:1 : s:DEFAULT_NAME)
+  if(s:buffer_number(name) == -1 || bufexists(s:buffer_number(name)) == 0)
     " No scratch buffer has been created yet.
     " Temporarily modify isfname to avoid treating the name as a pattern.
     let _isf = &isfname
     set isfname-=\
     set isfname-=[
     silent! call TopLeftHook()
-    exec 'keepalt topleft' &previewheight.'sp' (exists('+shellslash') ? '\\' : '\') . s:SCRATCH_BUFFER_NAME
+    exec 'keepalt topleft' &previewheight.'sp' (exists('+shellslash') ? '\\' : '\') . name
     let &isfname = _isf
-    let s:buffer_number = bufnr('%')
+    let s:buffer_numbers[name] = bufnr('%')
+    let result = 2
   else
     " A scratch buffer already exists ...
-    let buffer_win=bufwinnr(s:buffer_number)
+    let buffer_win=bufwinnr(s:buffer_number(name))
     if(buffer_win == -1)
       " ... but isn't visible, so show it.
       silent! call TopLeftHook()
       exec 'topleft' &previewheight.'split'
-      exec 'keepalt buf' s:buffer_number
+      exec 'keepalt buf' s:buffer_number(name)
+      let result = 1
     else
       " ... and is visible, so close it.
       exec buffer_win.'wincmd w'
       hide
       wincmd p
-      return
+      return 0
     endif
   endif
   " Do setup always, just in case.
@@ -131,12 +141,14 @@ function! <SID>ShowScratchBuffer()
   setlocal nobuflisted
   setlocal noswapfile
   setlocal noro
+
+  return result
 endfunction
 
 function! s:BackupScratchBuffer()
-  if s:buffer_number != -1 && exists('g:scratchBackupFile') &&
+  if s:buffer_number(s:DEFAULT_NAME) != -1 && exists('g:scratchBackupFile') &&
         \ g:scratchBackupFile != ''
-    exec 'keepalt split #' . s:buffer_number
+    exec 'keepalt split #' . s:buffer_number(s:DEFAULT_NAME)
     " Avoid writing empty scratch buffers.
     if line('$') > 1 || getline(1) !~ '^\s*$'
       exec 'keepalt write!' g:scratchBackupFile
