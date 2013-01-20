@@ -96,8 +96,9 @@ if !exists('s:buffer_numbers') " Supports reloading.
   let s:buffer_numbers = {}
 endif
 
-function! s:buffer_number( name )
-  return get(s:buffer_numbers, a:name, -1)
+function! scratch#BufferNr( name )
+  let name = (empty(a:name) ? s:DEFAULT_NAME : a:name)
+  return get(s:buffer_numbers, name, -1)
 endfunction
 
 "----------------------------------------------------------------------
@@ -107,7 +108,7 @@ endfunction
 function! scratch#Toggle( ... )
   let result = 0
   let name = (a:0 && ! empty(a:1) ? a:1 : s:DEFAULT_NAME)
-  if(s:buffer_number(name) == -1 || bufexists(s:buffer_number(name)) == 0)
+  if(scratch#BufferNr(name) == -1 || bufexists(scratch#BufferNr(name)) == 0)
     " No scratch buffer has been created yet.
     " Temporarily modify isfname to avoid treating the name as a pattern.
     let _isf = &isfname
@@ -120,12 +121,12 @@ function! scratch#Toggle( ... )
     let result = 2
   else
     " A scratch buffer already exists ...
-    let buffer_win=bufwinnr(s:buffer_number(name))
+    let buffer_win=bufwinnr(scratch#BufferNr(name))
     if(buffer_win == -1)
       " ... but isn't visible, so show it.
       silent! call TopLeftHook()
       exec 'topleft' &previewheight.'split'
-      exec 'keepalt buf' s:buffer_number(name)
+      exec 'keepalt buf' scratch#BufferNr(name)
       let result = 1
     else
       " ... and is visible, so close it.
@@ -146,9 +147,9 @@ function! scratch#Toggle( ... )
 endfunction
 
 function! s:BackupScratchBuffer()
-  if s:buffer_number(s:DEFAULT_NAME) != -1 && exists('g:scratchBackupFile') &&
+  if scratch#BufferNr(s:DEFAULT_NAME) != -1 && exists('g:scratchBackupFile') &&
         \ g:scratchBackupFile != ''
-    exec 'keepalt split #' . s:buffer_number(s:DEFAULT_NAME)
+    exec 'keepalt split #' . scratch#BufferNr(s:DEFAULT_NAME)
     " Avoid writing empty scratch buffers.
     if line('$') > 1 || getline(1) !~ '^\s*$'
       exec 'keepalt write!' g:scratchBackupFile
