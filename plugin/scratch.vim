@@ -106,10 +106,9 @@ endfunction
 " present, shows if not yet visible, hides if it was already loaded in a window.
 "----------------------------------------------------------------------
 function! scratch#Toggle( ... )
-  let result = 0
   let name = (a:0 && ! empty(a:1) ? a:1 : s:DEFAULT_NAME)
   if(scratch#BufferNr(name) == -1 || bufexists(scratch#BufferNr(name)) == 0)
-    " No scratch buffer has been created yet.
+    " No scratch buffer has been created yet, or it has been :bdelete'd.
     " Temporarily modify isfname to avoid treating the name as a pattern.
     let _isf = &isfname
     set isfname-=\
@@ -118,7 +117,6 @@ function! scratch#Toggle( ... )
     exec 'keepalt topleft' &previewheight.'sp' (exists('+shellslash') ? '\\' : '\') . name
     let &isfname = _isf
     let s:buffer_numbers[name] = bufnr('%')
-    let result = 2
   else
     " A scratch buffer already exists ...
     let buffer_win=bufwinnr(scratch#BufferNr(name))
@@ -127,7 +125,6 @@ function! scratch#Toggle( ... )
       silent! call TopLeftHook()
       exec 'topleft' &previewheight.'split'
       exec 'keepalt buf' scratch#BufferNr(name)
-      let result = 1
     else
       " ... and is visible, so close it.
       exec buffer_win.'wincmd w'
@@ -143,7 +140,7 @@ function! scratch#Toggle( ... )
   setlocal noswapfile
   setlocal noro
 
-  return result
+  return 1
 endfunction
 
 function! s:BackupScratchBuffer()
