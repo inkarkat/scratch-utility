@@ -4,6 +4,9 @@
 " Last Change: 25-Feb-2004 @ 09:48
 " Created: 17-Aug-2002
 " Version: 1.0.0
+"   1.0.0.ingo007  26-Jan-2016  ENH: Add a:isClear flag to scratch#Toggle() and
+"                               support creating blank scratch buffer with
+"                               :Scratch!.
 "   1.0.0.ingo006  19-Jan-2013  ENH: Allow additional scratch buffers with
 "                               different names. (But those aren't backed up.)
 "   1.0.0.ingo005  17-Sep-2012	Change split behavior to add custom
@@ -68,20 +71,24 @@ set cpo&vim
 if (! exists("no_plugin_maps") || ! no_plugin_maps) &&
       \ (! exists("no_scratch_maps") || ! no_scratch_maps)
   if !hasmapto('<Plug>ShowScratchBuffer',"n")
-    nmap <unique> <silent> <F8> <Plug>ShowScratchBuffer
+    nmap <silent> <F8> <Plug>ShowScratchBuffer
   endif
   if !hasmapto('<Plug>InsShowScratchBuffer',"i")
-    imap <unique> <silent> <F8> <Plug>InsShowScratchBuffer
+    imap <silent> <F8> <Plug>InsShowScratchBuffer
   endif
 endif
 
 " User Overrideable Plugin Interface
-nmap <script> <silent> <Plug>ShowScratchBuffer
-      \ :<c-u>silent call scratch#Toggle()<cr>
-imap <script> <silent> <Plug>InsShowScratchBuffer
-      \ <c-o>:silent call scratch#Toggle()<cr>
+nnoremap <silent> <Plug>ShowScratchBuffer
+      \ :<c-u>silent call scratch#Toggle(0)<cr>
+nnoremap <silent> <Plug>NewScratchBuffer
+      \ :<c-u>silent call scratch#Toggle(1)<cr>
+inoremap <silent> <Plug>InsShowScratchBuffer
+      \ <c-o>:silent call scratch#Toggle(0)<cr>
+inoremap <silent> <Plug>InsNewScratchBuffer
+      \ <c-o>:silent call scratch#Toggle(1)<cr>
 
-command! -nargs=? Scratch call scratch#Toggle(<f-args>)
+command! -bang -bar -nargs=? Scratch call scratch#Toggle(<bang>0, <f-args>)
 
 if !exists('g:scratchBackupFile')
   let g:scratchBackupFile = '' " So that users can easily find this var.
@@ -105,7 +112,7 @@ endfunction
 " Toggles the scratch buffer. Creates one if it is not already
 " present, shows if not yet visible, hides if it was already loaded in a window.
 "----------------------------------------------------------------------
-function! scratch#Toggle( ... )
+function! scratch#Toggle( isClear, ... )
   let name = (a:0 && ! empty(a:1) ? a:1 : s:DEFAULT_NAME)
   if(scratch#BufferNr(name) == -1 || bufexists(scratch#BufferNr(name)) == 0)
     " No scratch buffer has been created yet, or it has been :bdelete'd.
@@ -125,9 +132,18 @@ function! scratch#Toggle( ... )
       silent! call TopLeftHook()
       exec 'topleft' &previewheight.'split'
       exec 'keepalt buf' scratch#BufferNr(name)
+
+      if a:isClear
+        silent %delete _
+      endif
     else
       " ... and is visible, so close it.
       exec buffer_win.'wincmd w'
+
+      if a:isClear
+        silent %delete _
+      endif
+
       hide
       wincmd p
       return 0
@@ -144,8 +160,7 @@ function! scratch#Toggle( ... )
 endfunction
 
 function! s:BackupScratchBuffer()
-  if scratch#BufferNr(s:DEFAULT_NAME) != -1 && exists('g:scratchBackupFile') &&
-        \ g:scratchBackupFile != ''
+  if scratch#BufferNr(s:DEFAULT_NAME) != -1 && g:scratchBackupFile != '' && exists('g:scratchBackupFile')
     exec 'keepalt split #' . scratch#BufferNr(s:DEFAULT_NAME)
     " Avoid writing empty scratch buffers.
     if line('$') > 1 || getline(1) !~ '^\s*$'
